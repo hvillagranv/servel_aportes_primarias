@@ -27,8 +27,8 @@ Este proyecto permite explorar de manera interactiva los aportes económicos rec
 1. **Clonar el repositorio:**
 
 ```bash
-git clone https://github.com/tuusuario/visualizacion-aportes-2025.git
-cd visualizacion-aportes-2025
+git clone https://github.com/hvillagranv/servel_aportes_primarias.git
+cd servel_aportes_primarias
 ```
 
 2. **Crear entorno virtual (opcional):**
@@ -58,6 +58,7 @@ streamlit run app.py
 ├── layout.py                    # Visualización de información de candidatos
 ├── candidatos.py                # Lista y metadatos de candidatos
 ├── requirements.txt             # Paquetes necesarios
+├── estilos.css                  # Hoja de estilos del sitio
 ├── README.md                    # Este archivo
 ```
 
