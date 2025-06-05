@@ -1,5 +1,8 @@
-streamlit
-pandas
-requests
+streamlit>=1.30.0
+pandas>=2.2.2
+streamlit-aggrid>=0.3.4
 matplotlib
+numpy
 openpyxl
+requests
+tabulate

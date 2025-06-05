@@ -31,7 +31,7 @@ def mostrar_candidatos_html(candidatos):
             </div>
             <div style="margin-top: 10px; font-size: 18px; font-weight: bold;">{c["nombre"]}</div>
             <div style="font-size: 14px; color: #888;">({c["partido"]})</div>
-            <div id="info{idx}" style="display: none; margin-top: 10px; background: #f9f9f9; border-radius: 8px; padding: 10px; font-size: 13px; text-align: left;">
+            <div id="info{idx}" style="display: none; margin-top: 10px; border-radius: 8px; padding: 10px; font-size: 13px; color: white; text-align: left;">
                 <div><strong>Edad:</strong> {c["edad"]}</div>
                 <div><strong>Profesión:</strong> {c["profesion"]}</div>
                 <div><strong>Programa:</strong> <a href="{c["programa"]}" target="_blank">ver</a></div>
@@ -54,4 +54,4 @@ def mostrar_candidatos_html(candidatos):
         </script>
         """
     final_html = f"<div style='display: flex; flex-wrap: wrap; justify-content: center;'>{html_blocks}</div>"
-    components.html(final_html, height=950, scrolling=True)
+    components.html(final_html, height=400, scrolling=True)
