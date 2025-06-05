@@ -117,52 +117,83 @@ def mostrar_tabla_aportes(df, col_candidato, col_monto, titulo, candidatos):
         gridOptions=grid_options,
         fit_columns_on_grid_load=True,
         height=altura,
-        enable_enterprise_modules=False
+        enable_enterprise_modules=False,
+        theme="balham-dark",
+        custom_css={
+            ".ag-root": {"background-color": "#1e1e1e !important"},
+            ".ag-header": {"background-color": "#111111"},
+            ".ag-header-cell-label": {"color": "white"},
+            ".ag-cell-value": {"color": "white !important"},
+            ".ag-row": {"background-color": "#1e1e1e !important"},
+            ".ag-cell": {"background-color": "#1e1e1e !important"},
+            ".ag-header-icon": {"filter": "invert(1)"}
+        }
     )
 
 # -------------------- Gráficos Generales--------------------
 
-def mostrar_graficos_aportes(df, col_monto, titulog1, titulog2):
+def mostrar_graficos_aportes(df, col_monto, titulog1, titulog2, candidatos):
     nombres = df["NOMBRE_FORMATO"]
     montos = df[col_monto]
     total = montos.sum()
 
+    # Obtener lista de colores desde los candidatos
+    colores_dict = {
+        capitalizar_nombre(c["nombre"]): c.get("color_partido", "#1f77b4")
+        for c in candidatos
+    }
+    colores = [colores_dict.get(nombre, "#1f77b4") for nombre in nombres]
+
     col1, col2 = st.columns(2)
 
+    # --- Gráfico de barras ---
     with col1:
-        st.subheader("Gráfico de barras")
-        fig_bar, ax = plt.subplots(figsize=(7, 5))  # igual altura que gráfico de dona
-        bars = ax.bar(nombres, montos)
+        fig_bar, ax = plt.subplots(figsize=(7, 5), facecolor="#0E1117")
+        bars = ax.bar(nombres, montos, color=colores)
 
         for bar in bars:
             height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2, height + total * 0.01,
-                    f'{int(height):,}'.replace(",", "."), ha='center', va='bottom', fontsize=9)
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                height + total * 0.01,
+                f'{int(height):,}'.replace(",", "."),
+                ha='center',
+                va='bottom',
+                fontsize=9,
+                color='white'
+            )
 
-        ax.set_title(titulog1)
-        ax.set_ylabel("Monto en pesos")
-        ax.set_xlabel("Candidato")
+        ax.set_title(titulog1, color='white', fontsize=12)
+        ax.set_ylabel("Monto en pesos", color='white')
+        ax.set_xlabel("Candidato", color='white')
+        ax.tick_params(colors='white')
         ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"${int(x):,}".replace(",", ".")))
-        plt.xticks(rotation=45, ha='right')
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
+        ax.spines["left"].set_color('white')
+        ax.spines["bottom"].set_color('white')
+        ax.set_facecolor("#0E1117")
+        plt.xticks(rotation=45, ha='right', color='white')
+        plt.yticks(color='white')
+
         st.pyplot(fig_bar)
 
+    # --- Gráfico de donas ---
     with col2:
-        st.subheader("Gráfico de donas")
         etiquetas_grafico = [
             f"{nombres[i]}\n${montos[i]:,.0f}".replace(",", ".") + f" ({montos[i]/total:.1%})"
             for i in range(len(nombres))
         ]
         etiquetas_leyenda = [str(n) for n in nombres]
 
-        fig_dona, ax = plt.subplots(figsize=(7, 5))  # igual altura que gráfico de barras
+        fig_dona, ax = plt.subplots(figsize=(7, 5), facecolor="#0E1117")
         wedges, _ = ax.pie(
             montos,
             startangle=90,
             radius=1,
-            wedgeprops=dict(width=0.35),
-            labels=None
+            wedgeprops=dict(width=0.35, edgecolor='#0E1117'),
+            labels=None,
+            colors=colores
         )
 
         ys_usados = []
@@ -178,26 +209,32 @@ def mostrar_graficos_aportes(df, col_monto, titulog1, titulog2):
             y0 = np.sin(rad) * 1.05
             ax.plot([x0, x], [y0, y], color='gray', lw=0.8)
             ha = 'left' if x > 0 else 'right'
-            ax.text(x, y, etiquetas_grafico[i], ha=ha, va='center', fontsize=8)
+            ax.text(x, y, etiquetas_grafico[i], ha=ha, va='center', fontsize=8, color='white')
 
-        ax.add_artist(plt.Circle((0, 0), 0.6, color='white'))
+        # Círculo interior del dona igual al fondo
+        ax.add_artist(plt.Circle((0, 0), 0.6, color='#0E1117'))
 
-        ax.legend(
+        ax.set_title(titulog2, color='white', fontsize=12, pad=12)
+        ax.axis('equal')
+        plt.subplots_adjust(left=0.1, right=0.85)
+
+        # Leyenda
+        legend = ax.legend(
             wedges,
             etiquetas_leyenda,
             title="Candidatos",
             loc="center left",
             bbox_to_anchor=(0.78, 0.5),
             fontsize=8,
-            title_fontsize=9
+            title_fontsize=9,
+            labelcolor='white',
+            frameon=False
         )
+        legend.get_title().set_color("white")
 
-        ax.set_title(titulog2, fontsize=12, pad=12)
-        ax.axis('equal')
-        plt.subplots_adjust(left=0.1, right=0.85)
-
+        fig_dona.patch.set_facecolor('#0E1117')
+        ax.set_facecolor("#0E1117")
         st.pyplot(fig_dona)
-
 
 # -------------------- Detalles por candidato --------------------
 def filtrar_aportes_candidato(df, candidato):
@@ -373,17 +410,18 @@ def mostrar_tabla_detallada_aportes(df_candidato, candidato):
         ".ag-row": {"background-color": "#1e1e1e !important"},
         ".ag-cell": {"background-color": "#1e1e1e !important"},
         ".ag-header-icon": {"filter": "invert(1)"}
-    }
-)
-
-    # Botón de descarga
-    st.download_button(
-        "📥 Descargar aportes",
-        data=df_mostrar.to_csv(index=False).encode("utf-8-sig"),
-        file_name="aportes_candidatos.csv",
-        mime="text/csv"
+        }
     )
 
+    with st.container():
+        st.markdown('<div class="boton-descarga">', unsafe_allow_html=True)
+        st.download_button(
+            "📥 Descargar aportes",
+            data=df_mostrar.to_csv(index=False).encode("utf-8-sig"),
+            file_name="aportes_candidatos.csv",
+            mime="text/csv"
+        )
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # -------------------- Gráfico de aportes por candidato --------------------
 
@@ -401,31 +439,51 @@ def mostrar_grafico_aportes_por_tipo(df_candidato, candidato):
             for tipo, monto in resumen.items()
         ]
 
-        # 🔽 Más pequeño
-        fig, ax = plt.subplots(figsize=(5, 4))  
+        fig, ax = plt.subplots(figsize=(5, 4), facecolor="#0E1117")
         wedges, _ = ax.pie(
             resumen,
-            labels=etiquetas,
+            labels=None,
             startangle=90,
-            wedgeprops=dict(width=0.4)
+            wedgeprops=dict(width=0.4, edgecolor="#0E1117"),
+            colors=plt.cm.Set2.colors
         )
-        plt.subplots_adjust(top=0.80)
 
-        # Añadir título con más espacio abajo (pad)
+        # Añadir líneas y etiquetas separadas (estilo profesional)
+        ys_usados = []
+        for i, wedge in enumerate(wedges):
+            ang = (wedge.theta2 + wedge.theta1) / 2
+            rad = np.deg2rad(ang)
+            x = np.cos(rad) * 1.25
+            y = np.sin(rad) * 1.25
+            while any(abs(y - y2) < 0.12 for y2 in ys_usados):
+                y += 0.12
+            ys_usados.append(y)
+            x0 = np.cos(rad) * 1.05
+            y0 = np.sin(rad) * 1.05
+            ax.plot([x0, x], [y0, y], color='gray', lw=0.8)
+            ha = 'left' if x > 0 else 'right'
+            ax.text(x, y, etiquetas[i], ha=ha, va='center', fontsize=8, color='white')
+
+        # Centro del gráfico del mismo color
+        ax.add_artist(plt.Circle((0, 0), 0.6, color="#0E1117"))
+
         ax.set_title(
             f"Tipos de aportes recibidos por {candidato['nombre']}",
             fontsize=12,
-            pad=30  # separa el título del gráfico
+            color='white',
+            pad=30
         )
         ax.axis('equal')
+        ax.set_facecolor("#0E1117")
+        fig.patch.set_facecolor("#0E1117")
 
-        # 🔽 Centrado
+        plt.subplots_adjust(top=0.80, bottom=0.05)
+
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             st.pyplot(fig)
     else:
         st.info("No hay datos suficientes para generar el gráfico.")
-
 
 def resumen_aportes_candidato(df_candidato):
     col_monto = [col for col in df_candidato.columns if "MONTO" in col.upper()]
@@ -456,4 +514,3 @@ def mostrar_aportes_detallados(df, candidato):
 
     st.subheader("Distribución de tipos de aporte")
     mostrar_grafico_aportes_por_tipo(df_candidato, candidato)
-

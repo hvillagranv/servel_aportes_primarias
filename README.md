@@ -3,6 +3,10 @@
 
 Este proyecto permite explorar de manera interactiva los aportes económicos recibidos por los candidatos a las elecciones primarias de Chile en 2025. Utiliza **Streamlit** y **pandas** para construir dashboards visuales que incluyen tablas, gráficos de barras y gráficos de dona.
 
+🔎 Puedes acceder directamente al visualizador aquí:
+
+👉 **[https://primarias2025cl.streamlit.app/](https://primarias2025cl.streamlit.app/)**
+
 ## 📊 Funcionalidades principales
 
 - **Visualización general**: muestra el total de aportes por candidato.
@@ -70,7 +74,6 @@ https://repodocgastoelectoral.blob.core.windows.net/public/Presidencial_Parlamen
 
 MIT License. Libre para uso personal, educativo o institucional.
 
-## 👤 Autor
+## 👤 Créditos
 
-**Hans Villagrán**  
-Contacto: [@]hvillagran(https://twitter.com/hvillagran)
+Desarrollado por [Hans Villagrán](https://www.linkedin.com/in/hvillagran/)

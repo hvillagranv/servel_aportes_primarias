@@ -10,10 +10,18 @@ from graficos import (
     mostrar_aportes_detallados
 )
 
+from babel.dates import format_date
+
+
 st.set_page_config(layout="wide")
+
+def aplicar_estilo_personalizado(css_file):
+    with open(css_file) as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+# Aplicar el CSS
+aplicar_estilo_personalizado("estilos.css")
 st.title("Visualización de Aportes a Candidatos – Primarias 2025")
 
-from graficos import cargar_datos_remotos
 
 url = "https://repodocgastoelectoral.blob.core.windows.net/public/Presidencial_Parlamentaria_2025/Primarias/Reporte_Aportes_PRIMARIAS_2025.xlsx"
 df = cargar_datos_remotos(url)
@@ -24,7 +32,9 @@ if col_fecha:
         df[col_fecha] = pd.to_datetime(df[col_fecha], errors="coerce")
         fecha_max = df[col_fecha].max()
         if pd.notnull(fecha_max):
-            st.markdown(f"<p style='color:gray;'>Datos hasta el {fecha_max.strftime('%-d de %B de %Y')}</p>", unsafe_allow_html=True)
+            fecha_formateada = format_date(fecha_max, format="d 'de' MMMM 'de' y", locale="es")
+            
+        st.markdown(f"<span style='color:#6c757d'>Datos hasta el {fecha_formateada}</span>", unsafe_allow_html=True)
     except:
         pass
 
@@ -32,7 +42,6 @@ if col_fecha:
 mostrar_candidatos_html(candidatos)
 
 # Cargar y procesar los datos reales desde Servel
-url = "https://repodocgastoelectoral.blob.core.windows.net/public/Presidencial_Parlamentaria_2025/Primarias/Reporte_Aportes_PRIMARIAS_2025.xlsx"
 try:
     df = cargar_datos_remotos(url)
     suma_aportes, col_candidato, col_monto = procesar_datos(df, candidatos)
@@ -42,7 +51,7 @@ try:
     mostrar_tabla_aportes(suma_aportes, col_candidato, col_monto, titulo_tabla, candidatos)
     titulo_g1 = "Aportes Totales por Candidato"
     titulo_g2 = "Distribución de Aportes por Candidato"
-    mostrar_graficos_aportes(suma_aportes, col_monto, titulo_g1, titulo_g2)
+    mostrar_graficos_aportes(suma_aportes, col_monto, titulo_g1, titulo_g2, candidatos)
 
     # Selección de candidato para ver detalles
     nombres_candidatos = [c["nombre"] for c in candidatos]
