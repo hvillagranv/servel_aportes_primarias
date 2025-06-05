@@ -26,41 +26,67 @@ a {
     color: white !important;
 }
 
-.boton-descarga button {
-        background-color: #0E1117 !important;
-        color: white !important;
-        border: 1px solid white !important;
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        font-weight: bold;
-        transition: 0.3s ease;
-    }
-    .boton-descarga button:hover {
-        background-color: white !important;
-        color: #0E1117 !important;
-        border: 1px solid #0E1117 !important;
-    }
+/* Botón de descarga */
+.stDownloadButton > button {
+    background-color: #0E1117 !important;
+    color: white !important;
+    border: 1px solid #555 !important;
+    font-weight: bold;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+}
+.stDownloadButton > button:hover {
+    background-color: #1A1A1A !important;
+    color: #ddd !important;
+}
 
-    .stSelectbox > div {
-        background-color: #0E1117 !important;
-        color: white !important;
-        border: 1px solid white !important;
-        border-radius: 8px;
-    }
-    .stSelectbox label {
-        color: white !important;
-    }
-    div[data-baseweb="select"] {
-        background-color: #0E1117 !important;
-        color: white !important;
-    }
-    div[role="option"] {
-        background-color: #0E1117 !important;
-        color: white !important;
-    }
-    div[role="option"]:hover {
-        background-color: white !important;
-        color: #0E1117 !important;
-    }
+div[data-baseweb="select"][aria-expanded="false"] {
+    background-color: #0E1117 !important;
+    color: white !important;
+    border: 1px solid #444 !important;
+}
 
+/* Fondo del contenedor abierto (dropdown activo) */
+div[data-baseweb="select"][aria-expanded="true"] {
+    background-color: #0E1117 !important;
+    color: white !important;
+    border: 1px solid #888 !important;
+}
 
+/* Input de búsqueda y placeholder */
+div[data-baseweb="select"] input {
+    background-color: #0E1117 !important;
+    color: white !important;
+}
+
+/* Texto ya seleccionado visible */
+div[data-baseweb="select"] div[role="combobox"] {
+    background-color: #0E1117 !important;
+    color: white !important;
+}
+
+/* Flecha desplegable */
+svg[data-testid="DropdownIndicatorIcon"] {
+    color: white !important;
+}
+
+/* Menú desplegado */
+ul[role="listbox"] {
+    background-color: #0E1117 !important;
+}
+
+/* Opciones */
+li[role="option"] {
+    color: white !important;
+}
+li[role="option"]:hover {
+    background-color: #1A1A1A !important;
+}
+li[role="option"][aria-selected="true"] {
+    background-color: #222222 !important;
+}
+
+/* Eliminar bordes rojos de error */
+div[data-baseweb="select"] {
+    box-shadow: none !important;
+}

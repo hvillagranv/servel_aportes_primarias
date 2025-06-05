@@ -1,7 +1,7 @@
 import streamlit as st
 from candidatos import candidatos
 import pandas as pd
-from layout import mostrar_candidatos_html
+from layout import mostrar_candidatos
 from graficos import (
     cargar_datos_remotos,
     procesar_datos,
@@ -11,7 +11,6 @@ from graficos import (
 )
 
 from babel.dates import format_date
-
 
 st.set_page_config(layout="wide")
 
@@ -39,7 +38,8 @@ if col_fecha:
         pass
 
 # Mostrar galería de candidatos con clic para expandir detalles
-mostrar_candidatos_html(candidatos)
+mostrar_candidatos(candidatos)
+
 
 # Cargar y procesar los datos reales desde Servel
 try:

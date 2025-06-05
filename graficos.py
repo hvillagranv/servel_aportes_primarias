@@ -89,7 +89,7 @@ def mostrar_tabla_aportes(df, col_candidato, col_monto, titulo, candidatos):
 
     # Crear diccionario {nombre_normalizado: nombre (partido)}
     partidos_dict = {
-        normalizar(c["nombre"]): f'{capitalizar_nombre(c["nombre"])} ({c["partido"]})'
+        normalizar(c["nombre"]): f'{capitalizar_nombre(c["nombre"])} ({c["abreviatura"]})'
         for c in candidatos
     }
 
@@ -107,11 +107,20 @@ def mostrar_tabla_aportes(df, col_candidato, col_monto, titulo, candidatos):
         type=["numericColumn", "rightAligned"],
         valueFormatter='data.Monto.toLocaleString("es-CL", {style: "currency", currency: "CLP"})'
     )
-    gb.configure_grid_options(rowHeight=32)
-    gb.configure_default_column(sortable=True, filter=True)
+    gb.configure_grid_options(
+        rowHeight=32,
+        domLayout='autoHeight'  # Esto hace que la altura se ajuste al contenido
+    )
+    gb.configure_default_column(
+        sortable=True,
+        filter=True,
+        resizable=True,  # Permite redimensionar columnas
+        flex=1  # Hace que las columnas se expandan para llenar el espacio
+    )
     grid_options = gb.build()
 
     altura = 40 + len(df_vista) * 32
+
     AgGrid(
         df_vista,
         gridOptions=grid_options,
@@ -126,10 +135,13 @@ def mostrar_tabla_aportes(df, col_candidato, col_monto, titulo, candidatos):
             ".ag-cell-value": {"color": "white !important"},
             ".ag-row": {"background-color": "#1e1e1e !important"},
             ".ag-cell": {"background-color": "#1e1e1e !important"},
-            ".ag-header-icon": {"filter": "invert(1)"}
-        }
+            ".ag-header-icon": {"filter": "invert(1)"},
+            ".ag-root-wrapper": {"width": "100% !important"},  # Asegura ancho completo
+            ".ag-center-cols-viewport": {"overflow-x": "auto"}  # Permite scroll horizontal si es necesario
+        },
+        update_mode='model_changed',
+        key=f"grid_{titulo}"  # Clave única para evitar problemas de renderizado
     )
-
 # -------------------- Gráficos Generales--------------------
 
 def mostrar_graficos_aportes(df, col_monto, titulog1, titulog2, candidatos):
@@ -290,11 +302,11 @@ def ajustes_columnas_aportes(df_candidato):
     df_limpio = df_limpio[columnas_ordenadas]
     return df_limpio
 
-
 def mostrar_tabla_detallada_aportes(df_candidato, candidato):
+    # Preprocesamiento de datos
     df_limpio = ajustes_columnas_aportes(df_candidato)
 
-    # Detectar columna del candidato (sin depender de mayúsculas exactas)
+    # Detectar columna del candidato
     col_candidato_partido = next(
         (col for col in df_limpio.columns if col.strip().upper() == "NOMBRE CANDIDATO-PARTIDO POLITICO"),
         None
@@ -312,13 +324,13 @@ def mostrar_tabla_detallada_aportes(df_candidato, candidato):
         if col in df_limpio.columns:
             df_limpio[col] = df_limpio[col].astype(str).str.lower().str.title()
 
-    # Detectar y renombrar columna de monto a 'Monto'
+    # Detectar y renombrar columna de monto
     col_monto = next((col for col in df_limpio.columns if "MONTO" in col.upper()), None)
     if col_monto and col_monto != "Monto":
         df_limpio.rename(columns={col_monto: "Monto"}, inplace=True)
         col_monto = "Monto"
 
-    # Limpiar montos en formato CLP y convertir
+    # Limpiar montos en formato CLP
     if "Monto" in df_limpio.columns:
         df_limpio["Monto"] = (
             df_limpio["Monto"]
@@ -341,88 +353,199 @@ def mostrar_tabla_detallada_aportes(df_candidato, candidato):
     if "Candidato" in df_mostrar.columns:
         df_mostrar["Candidato"] = df_mostrar["Candidato"].astype(str).str.lower().str.title()
 
-    st.subheader(f"Tabla de aportes individuales de {candidato['nombre']}")
+    # Layout mejorado
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.subheader(f"Tabla de aportes individuales de {candidato['nombre']}")
+    with col2:
+        page_size = st.selectbox(
+            "Filas por página",
+            options=[10, 20, 50, 100],
+            index=0,
+            key=f"page_size_{candidato['nombre']}"
+        )
 
     if df_mostrar.empty:
         st.warning("⚠️ No hay aportes registrados para este candidato.")
         return
 
-    # Configurar AgGrid
+    # Configurar AgGrid con diseño optimizado
     gb = GridOptionsBuilder.from_dataframe(df_mostrar)
-    gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=10)
-    gb.configure_grid_options(
-        rowHeight=32,
-        domLayout='normal',
-        suppressRowClickSelection=True,
-        suppressHorizontalScroll=True
+    
+    # Configuración de paginación
+    gb.configure_pagination(
+        paginationAutoPageSize=False,
+        paginationPageSize=page_size
     )
-    gb.configure_default_column(sortable=True, filter=True)
-
+    
+    # Configuración general del grid mejorada
+    gb.configure_grid_options(
+        rowHeight=40,
+        domLayout='autoHeight',
+        suppressHorizontalScroll=False,
+        alwaysShowHorizontalScroll=True,
+        suppressRowClickSelection=True,
+        suppressColumnVirtualisation=True,
+        ensureDomOrder=True
+    )
+    
+    # Configuración de columnas responsivas mejorada
+    gb.configure_default_column(
+        sortable=True,
+        filter=True,
+        resizable=True,
+        suppressSizeToFit=False,  # Permite ajuste al ancho
+        flex=1,
+        minWidth=120,
+        maxWidth=600,
+        wrapText=True,
+        autoHeight=True
+    )
+    
+    # Configuración específica por tipo de columna
     for col in df_mostrar.columns:
         header = col.capitalize()
-        if col == "TIPO DE APORTE":
+        if col == "Tipo de aporte":
             valores = df_mostrar[col].dropna().unique().tolist()
             gb.configure_column(
                 col,
                 header_name=header,
                 filter="agSetColumnFilter",
-                filterParams={"values": valores}
+                filterParams={"values": valores},
+                width=180,
+                pinned="left",
+                cellStyle={"white-space": "normal"}
             )
-        elif col == "Nombre Aportante":
-            gb.configure_column(col, header_name=header, filter="agTextColumnFilter")
+        elif col == "Nombre aportante":
+            gb.configure_column(
+                col,
+                header_name=header,
+                filter="agTextColumnFilter",
+                width=220,
+                tooltipField=col,
+                cellRenderer="agAnimateShowChangeCellRenderer",
+                cellStyle={"white-space": "normal"}
+            )
         elif col == "Monto":
             gb.configure_column(
                 col,
                 header_name="Monto",
                 type=["numericColumn", "rightAligned"],
                 valueFormatter='data.Monto.toLocaleString("es-CL", {style: "currency", currency: "CLP"})',
-                cellStyle={"fontWeight": "bold"}
+                cellStyle={"fontWeight": "bold"},
+                width=150
+            )
+        elif col == "Fecha de transferencia":
+            gb.configure_column(
+                col,
+                header_name=header,
+                width=150,
+                filter="agDateColumnFilter",
+                cellStyle={"white-space": "normal"}
+            )
+        elif col == "Candidato":
+            gb.configure_column(
+                col,
+                header_name=header,
+                hide=True
             )
         else:
-            gb.configure_column(col, header_name=header)
+            gb.configure_column(
+                col,
+                header_name=header,
+                width=150,
+                cellStyle={"white-space": "normal"}
+            )
 
-    grid_options = gb.build()
-
-    # Calcular altura de la tabla
-    row_height = 32
-    barra_paginacion = 20  # Altura constante de la barra de paginación
-    header = 56  # Header + margen superior
-    n_filas = len(df_mostrar)
-    filas_visibles = min(n_filas, 10)
-    altura_total = header + filas_visibles * row_height + barra_paginacion
-
-    # Mostrar tabla
-    AgGrid(
-    df_mostrar,
-    gridOptions=grid_options,
-    update_mode=GridUpdateMode.NO_UPDATE,
-    data_return_mode=DataReturnMode.FILTERED_AND_SORTED,
-    fit_columns_on_grid_load=True,
-    theme="balham-dark",
-    height=100 if len(df_mostrar) == 1 else (altura_total),
-    allow_unsafe_jscode=True,
-    enable_enterprise_modules=False,
-    custom_css={
-        ".ag-root": {"background-color": "#1e1e1e !important"},
-        ".ag-header": {"background-color": "#111111"},
-        ".ag-header-cell-label": {"color": "white"},
-        ".ag-cell-value": {"color": "white !important"},
-        ".ag-row": {"background-color": "#1e1e1e !important"},
-        ".ag-cell": {"background-color": "#1e1e1e !important"},
-        ".ag-header-icon": {"filter": "invert(1)"}
+    # CSS personalizado mejorado
+    custom_css = {
+        ".ag-root": {
+            "background-color": "#1e1e1e !important",
+            "font-family": "Arial, sans-serif",
+            "width": "100% !important",
+            "margin": "0 !important",
+            "padding": "0 !important"
+        },
+        ".ag-header": {
+            "background-color": "#111111 !important",
+            "position": "sticky !important",
+            "top": "0 !important",
+            "z-index": "100 !important",
+            "width": "100% !important"
+        },
+        ".ag-header-cell-label": {
+            "color": "white !important",
+            "font-size": "14px !important",
+            "justify-content": "center !important"
+        },
+        ".ag-cell-value": {
+            "color": "white !important",
+            "font-size": "13px !important"
+        },
+        ".ag-row": {
+            "background-color": "#1e1e1e !important",
+            "border-bottom": "1px solid #333 !important"
+        },
+        ".ag-cell": {
+            "background-color": "#1e1e1e !important",
+            "display": "flex !important",
+            "align-items": "center !important",
+            "max-width": "100% !important",
+            "padding": "8px 12px !important",
+            "line-height": "1.4 !important"
+        },
+        ".ag-header-icon": {
+            "filter": "invert(1) !important"
+        },
+        ".ag-center-cols-viewport": {
+            "overflow-x": "auto !important",
+            "min-height": "100px !important",
+            "width": "100% !important"
+        },
+        ".ag-body-viewport": {
+            "overflow-y": "auto !important",
+            "width": "100% !important"
+        },
+        ".ag-paging-panel": {
+            "background-color": "#1e1e1e !important",
+            "color": "white !important",
+            "border-top": "1px solid #333 !important",
+            "width": "100% !important",
+            "justify-content": "center !important"
+        },
+        ".ag-floating-filter": {
+            "max-width": "100% !important"
+        },
+        ".ag-header-cell-resize": {
+            "display": "none !important"
         }
+    }
+
+    # Mostrar tabla con configuración mejorada
+    AgGrid(
+        df_mostrar,
+        gridOptions=gb.build(),
+        update_mode=GridUpdateMode.NO_UPDATE,
+        data_return_mode=DataReturnMode.FILTERED_AND_SORTED,
+        fit_columns_on_grid_load=True,
+        theme="balham-dark",
+        height=400,
+        allow_unsafe_jscode=True,
+        enable_enterprise_modules=False,
+        custom_css=custom_css,
+        key=f"grid_{candidato['nombre']}",
+        reload_data=False
     )
 
-    with st.container():
-        st.markdown('<div class="boton-descarga">', unsafe_allow_html=True)
-        st.download_button(
-            "📥 Descargar aportes",
-            data=df_mostrar.to_csv(index=False).encode("utf-8-sig"),
-            file_name="aportes_candidatos.csv",
-            mime="text/csv"
-        )
-    st.markdown('</div>', unsafe_allow_html=True)
-
+    # Botón de descarga mejorado
+    st.download_button(
+        "📥 Descargar datos completos",
+        data=df_mostrar.to_csv(index=False, encoding='utf-8-sig'),
+        file_name=f"aportes_{candidato['nombre'].replace(' ', '_')}.csv",
+        mime="text/csv",
+        help="Descargar todos los datos filtrados en formato CSV",
+        use_container_width=True
+    )
 # -------------------- Gráfico de aportes por candidato --------------------
 
 def mostrar_grafico_aportes_por_tipo(df_candidato, candidato):

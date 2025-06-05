@@ -5,6 +5,7 @@ candidatos = [
         "ajuste": "center",
         "icono_partido": "https://frenteampliochile.cl/wp-content/uploads/2024/06/favico.png", 
         "partido": "Frente Amplio",
+        "abreviatura": "FA",
         "color_partido": "#00AAE5",
         "edad": "38 años",
         "profesion": "Abogado",
@@ -19,6 +20,7 @@ candidatos = [
         "ajuste": "center",
         "icono_partido": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Partido_Comunista_de_Chile.svg/1024px-Partido_Comunista_de_Chile.svg.png",  # PC
         "partido": "Partido Comunista de Chile",
+        "abreviatura": "PC",
         "color_partido": "#DA121A", 
         "edad": "51 años",
         "profesion": "Abogada y Administradora Pública",
@@ -33,6 +35,7 @@ candidatos = [
         "ajuste": "center",
         "icono_partido": "https://www.ppd.cl/wp-content/uploads/2023/11/Imagen-de-WhatsApp-2023-11-02-a-las-17.52.54_9e900606.jpg",  # PPD
         "partido": "Partido por la Democracia",
+        "abreviatura": "PPD",
         "color_partido": "#1E5190",
         "edad": "60 años",
         "profesion": "Cientista Política",
@@ -47,6 +50,7 @@ candidatos = [
         "ajuste": "top",
         "icono_partido": "https://th.bing.com/th/id/OIP.iSabPzKLwtecxe7gqxf48AHaHa?rs=1&pid=ImgDetMain",  
         "partido": "Federación Regionalista Verde Social",
+        "abreviatura": "FRVS",
         "color_partido": "#82B824", 
         "edad": "61 años",
         "profesion": "Abogado",
