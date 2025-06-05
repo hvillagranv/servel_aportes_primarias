@@ -324,8 +324,14 @@ def mostrar_tabla_detallada_aportes(df_candidato, candidato):
     for col in df_mostrar.columns:
         header = col.capitalize()
         if col == "TIPO DE APORTE":
-            gb.configure_column(col, header_name=header, filter="agSetColumnFilter")
-        elif col == "NOMBRE APORTANTE":
+            valores = df_mostrar[col].dropna().unique().tolist()
+            gb.configure_column(
+                col,
+                header_name=header,
+                filter="agSetColumnFilter",
+                filterParams={"values": valores}
+            )
+        elif col == "Nombre Aportante":
             gb.configure_column(col, header_name=header, filter="agTextColumnFilter")
         elif col == "Monto":
             gb.configure_column(
@@ -342,8 +348,11 @@ def mostrar_tabla_detallada_aportes(df_candidato, candidato):
 
     # Calcular altura de la tabla
     row_height = 32
+    barra_paginacion = 20  # Altura constante de la barra de paginación
+    header = 56  # Header + margen superior
     n_filas = len(df_mostrar)
-    altura_total = 40 + min(n_filas, 10) * row_height + (38 if n_filas > 10 else 0)
+    filas_visibles = min(n_filas, 10)
+    altura_total = header + filas_visibles * row_height + barra_paginacion
 
     # Mostrar tabla
     AgGrid(
@@ -363,6 +372,7 @@ def mostrar_tabla_detallada_aportes(df_candidato, candidato):
         ".ag-cell-value": {"color": "white !important"},
         ".ag-row": {"background-color": "#1e1e1e !important"},
         ".ag-cell": {"background-color": "#1e1e1e !important"},
+        ".ag-header-icon": {"filter": "invert(1)"}
     }
 )
 
@@ -399,7 +409,14 @@ def mostrar_grafico_aportes_por_tipo(df_candidato, candidato):
             startangle=90,
             wedgeprops=dict(width=0.4)
         )
-        ax.set_title(f"Tipos de aportes recibidos por {candidato['nombre']}")
+        plt.subplots_adjust(top=0.80)
+
+        # Añadir título con más espacio abajo (pad)
+        ax.set_title(
+            f"Tipos de aportes recibidos por {candidato['nombre']}",
+            fontsize=12,
+            pad=30  # separa el título del gráfico
+        )
         ax.axis('equal')
 
         # 🔽 Centrado

@@ -1,5 +1,6 @@
 import streamlit as st
 from candidatos import candidatos
+import pandas as pd
 from layout import mostrar_candidatos_html
 from graficos import (
     cargar_datos_remotos,
@@ -11,6 +12,21 @@ from graficos import (
 
 st.set_page_config(layout="wide")
 st.title("Visualización de Aportes a Candidatos – Primarias 2025")
+
+from graficos import cargar_datos_remotos
+
+url = "https://repodocgastoelectoral.blob.core.windows.net/public/Presidencial_Parlamentaria_2025/Primarias/Reporte_Aportes_PRIMARIAS_2025.xlsx"
+df = cargar_datos_remotos(url)
+
+col_fecha = next((col for col in df.columns if "FECHA DE TRANSFERENCIA" in col.upper()), None)
+if col_fecha:
+    try:
+        df[col_fecha] = pd.to_datetime(df[col_fecha], errors="coerce")
+        fecha_max = df[col_fecha].max()
+        if pd.notnull(fecha_max):
+            st.markdown(f"<p style='color:gray;'>Datos hasta el {fecha_max.strftime('%-d de %B de %Y')}</p>", unsafe_allow_html=True)
+    except:
+        pass
 
 # Mostrar galería de candidatos con clic para expandir detalles
 mostrar_candidatos_html(candidatos)
