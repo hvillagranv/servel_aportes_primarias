@@ -23,7 +23,7 @@ try:
 
     # Mostrar tabla y gráficos generales
     titulo_tabla = "Suma Total de Aportes por Candidato"
-    mostrar_tabla_aportes(suma_aportes, col_candidato, col_monto, titulo_tabla)
+    mostrar_tabla_aportes(suma_aportes, col_candidato, col_monto, titulo_tabla, candidatos)
     titulo_g1 = "Aportes Totales por Candidato"
     titulo_g2 = "Distribución de Aportes por Candidato"
     mostrar_graficos_aportes(suma_aportes, col_monto, titulo_g1, titulo_g2)

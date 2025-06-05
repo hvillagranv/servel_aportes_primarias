@@ -5,13 +5,15 @@ import streamlit as st
 from io import BytesIO
 import requests
 import unicodedata
-from st_aggrid import AgGrid, GridOptionsBuilder
+from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode
+import matplotlib.ticker as mticker
 
 # -------------------- Utilidades --------------------
 
 def normalizar(texto):
+    texto = str(texto).strip()  # Eliminar espacios antes/después
     return ''.join(
-        c for c in unicodedata.normalize('NFD', str(texto))
+        c for c in unicodedata.normalize('NFD', texto)
         if unicodedata.category(c) != 'Mn'
     ).lower()
 
@@ -57,7 +59,7 @@ def procesar_datos(df, candidatos):
 
     for c in candidatos:
         nombre_norm = normalizar(c["nombre"])
-        partido_norm = normalizar(c["partido"])
+        partido_norm = normalizar(c["partido"].strip())
 
         # Coincidencia flexible: nombres que comiencen con el del candidato
         filtro_candidato = df["__CANDIDATO_NORM__"].apply(lambda x: x.startswith(nombre_norm))
@@ -82,37 +84,41 @@ def procesar_datos(df, candidatos):
 
 # -------------------- Tablas Generales --------------------
 
-def mostrar_tabla_aportes(df, col_candidato, col_monto, titulo):
+def mostrar_tabla_aportes(df, col_candidato, col_monto, titulo, candidatos):
     st.subheader(titulo)
 
-    # Preprocesamiento del DataFrame
+    # Crear diccionario {nombre_normalizado: nombre (partido)}
+    partidos_dict = {
+        normalizar(c["nombre"]): f'{capitalizar_nombre(c["nombre"])} ({c["partido"]})'
+        for c in candidatos
+    }
+
     df_tabla = df[[col_candidato, col_monto]].copy()
     df_tabla[col_monto] = pd.to_numeric(df_tabla[col_monto], errors='coerce')
-    df_tabla["Candidato"] = df_tabla[col_candidato].apply(capitalizar_nombre)
+    df_tabla["__NORM__"] = df_tabla[col_candidato].astype(str).apply(normalizar)
+    df_tabla["Candidato"] = df_tabla["__NORM__"].map(partidos_dict)
     df_tabla = df_tabla.sort_values(by=col_monto, ascending=False)
 
-    # Renombrar la columna de monto para presentación
     df_vista = df_tabla[["Candidato", col_monto]].rename(columns={col_monto: "Monto"}).reset_index(drop=True)
 
-    # Configuración de AgGrid
     gb = GridOptionsBuilder.from_dataframe(df_vista)
     gb.configure_column(
         "Monto",
         type=["numericColumn", "rightAligned"],
         valueFormatter='data.Monto.toLocaleString("es-CL", {style: "currency", currency: "CLP"})'
     )
+    gb.configure_grid_options(rowHeight=32)
     gb.configure_default_column(sortable=True, filter=True)
     grid_options = gb.build()
 
-    # Mostrar tabla interactiva
+    altura = 40 + len(df_vista) * 32
     AgGrid(
         df_vista,
         gridOptions=grid_options,
         fit_columns_on_grid_load=True,
-        enable_enterprise_modules=False,
-        height=400
+        height=altura,
+        enable_enterprise_modules=False
     )
-
 
 # -------------------- Gráficos Generales--------------------
 
@@ -125,15 +131,21 @@ def mostrar_graficos_aportes(df, col_monto, titulog1, titulog2):
 
     with col1:
         st.subheader("Gráfico de barras")
-        fig_bar, ax = plt.subplots(figsize=(max(10, len(nombres) * 0.5), 5))
+        fig_bar, ax = plt.subplots(figsize=(7, 5))  # igual altura que gráfico de dona
         bars = ax.bar(nombres, montos)
+
         for bar in bars:
             height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2, height + 10000, f'{int(height):,}', ha='center', va='bottom', fontsize=9)
+            ax.text(bar.get_x() + bar.get_width()/2, height + total * 0.01,
+                    f'{int(height):,}'.replace(",", "."), ha='center', va='bottom', fontsize=9)
+
         ax.set_title(titulog1)
         ax.set_ylabel("Monto en pesos")
         ax.set_xlabel("Candidato")
+        ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"${int(x):,}".replace(",", ".")))
         plt.xticks(rotation=45, ha='right')
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
         st.pyplot(fig_bar)
 
     with col2:
@@ -142,9 +154,9 @@ def mostrar_graficos_aportes(df, col_monto, titulog1, titulog2):
             f"{nombres[i]}\n${montos[i]:,.0f}".replace(",", ".") + f" ({montos[i]/total:.1%})"
             for i in range(len(nombres))
         ]
-        etiquetas_leyenda = list(nombres)
+        etiquetas_leyenda = [str(n) for n in nombres]
 
-        fig_dona, ax = plt.subplots(figsize=(6.5, 5))
+        fig_dona, ax = plt.subplots(figsize=(7, 5))  # igual altura que gráfico de barras
         wedges, _ = ax.pie(
             montos,
             startangle=90,
@@ -186,6 +198,7 @@ def mostrar_graficos_aportes(df, col_monto, titulog1, titulog2):
 
         st.pyplot(fig_dona)
 
+
 # -------------------- Detalles por candidato --------------------
 def filtrar_aportes_candidato(df, candidato):
     col_candidato = [col for col in df.columns if "CANDIDATO" in col.upper()][0]
@@ -207,27 +220,164 @@ def filtrar_aportes_candidato(df, candidato):
 
 # -------------------- Tabla de aportes por candidato --------------------
 
-def mostrar_tabla_detallada_aportes(df_candidato):
-    columnas_excluir = ["TIPO DONATARIO", "ELECCION", "TERRITORIO ELECTORAL", "PACTO", "PARTIDO", "__NORMALIZADO__"]
-    columnas_mostrar = [col for col in df_candidato.columns if col.upper() not in columnas_excluir]
-    df_limpio = df_candidato[columnas_mostrar].copy()
+def ajustes_columnas_aportes(df_candidato):
+    columnas_ocultas = [
+        "TIPO DONATARIO", "ELECCION", "TERRITORIO ELECTORAL", 
+        "PACTO", "PARTIDO", "__NORMALIZADO__", "__CANDIDATO_NORM__", "__APORTANTE_NORM__"
+    ]
 
+    columnas_visibles = [col for col in df_candidato.columns if col.upper() not in columnas_ocultas]
+    df_limpio = df_candidato[columnas_visibles].copy()
+
+    # Formato de fecha
     col_fecha = next((col for col in df_limpio.columns if "FECHA" in col.upper()), None)
     if col_fecha:
         df_limpio[col_fecha] = pd.to_datetime(df_limpio[col_fecha], errors='coerce').dt.strftime("%Y-%m-%d")
 
+    # Formato de monto y columna oculta para orden
     col_monto = [col for col in df_limpio.columns if "MONTO" in col.upper()]
     if col_monto:
         col_monto = col_monto[0]
-        df_limpio[col_monto] = df_limpio[col_monto].apply(
-            lambda x: f"**{formato_clp(x)}**" if pd.notnull(x) and x != '' else x
-        )
+        df_limpio[col_monto + "_OCULTO"] = pd.to_numeric(df_limpio[col_monto], errors='coerce')
+        df_limpio[col_monto] = df_limpio[col_monto + "_OCULTO"].apply(formato_clp)
 
-    st.subheader("Tabla de aportes individuales")
-    st.dataframe(df_limpio, use_container_width=True)
+    # Orden sugerido de columnas
+    columnas_ordenadas = sorted(df_limpio.columns, key=lambda x: (
+        0 if "TIPO DE APORTE" in x.upper() else
+        1 if "NOMBRE APORTANTE" in x.upper() else
+        2 if "MONTO" in x.upper() and "_OCULTO" not in x.upper() else
+        3 if "FECHA" in x.upper() else
+        4
+    ))
+
+    df_limpio = df_limpio[columnas_ordenadas]
+    return df_limpio
+
+
+def mostrar_tabla_detallada_aportes(df_candidato, candidato):
+    df_limpio = ajustes_columnas_aportes(df_candidato)
+
+    # Detectar columna del candidato (sin depender de mayúsculas exactas)
+    col_candidato_partido = next(
+        (col for col in df_limpio.columns if col.strip().upper() == "NOMBRE CANDIDATO-PARTIDO POLITICO"),
+        None
+    )
+    if col_candidato_partido:
+        df_limpio["Candidato"] = (
+            df_limpio[col_candidato_partido]
+            .astype(str).str.lower().str.title()
+        )
+        df_limpio.drop(columns=[col_candidato_partido], inplace=True)
+
+    # Capitalizar columnas clave
+    columnas_a_capitalizar = ["NOMBRE APORTANTE", "TIPO DE APORTE", "TIPO APORTANTE"]
+    for col in columnas_a_capitalizar:
+        if col in df_limpio.columns:
+            df_limpio[col] = df_limpio[col].astype(str).str.lower().str.title()
+
+    # Detectar y renombrar columna de monto a 'Monto'
+    col_monto = next((col for col in df_limpio.columns if "MONTO" in col.upper()), None)
+    if col_monto and col_monto != "Monto":
+        df_limpio.rename(columns={col_monto: "Monto"}, inplace=True)
+        col_monto = "Monto"
+
+    # Limpiar montos en formato CLP y convertir
+    if "Monto" in df_limpio.columns:
+        df_limpio["Monto"] = (
+            df_limpio["Monto"]
+            .astype(str)
+            .str.replace(".", "", regex=False)
+            .str.replace("$", "", regex=False)
+            .str.replace(" ", "", regex=False)
+        )
+        df_limpio["Monto"] = pd.to_numeric(df_limpio["Monto"], errors="coerce")
+
+    # Quitar columnas ocultas
+    df_mostrar = df_limpio.drop(columns=[c for c in df_limpio.columns if "_OCULTO" in c], errors="ignore")
+
+    # Validar y limpiar 'Monto'
+    if "Monto" in df_mostrar.columns:
+        df_mostrar["Monto"] = pd.to_numeric(df_mostrar["Monto"], errors="coerce")
+        df_mostrar = df_mostrar[df_mostrar["Monto"].notna()]
+
+    # Capitalizar Candidato si existe
+    if "Candidato" in df_mostrar.columns:
+        df_mostrar["Candidato"] = df_mostrar["Candidato"].astype(str).str.lower().str.title()
+
+    st.subheader(f"Tabla de aportes individuales de {candidato['nombre']}")
+
+    if df_mostrar.empty:
+        st.warning("⚠️ No hay aportes registrados para este candidato.")
+        return
+
+    # Configurar AgGrid
+    gb = GridOptionsBuilder.from_dataframe(df_mostrar)
+    gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=10)
+    gb.configure_grid_options(
+        rowHeight=32,
+        domLayout='normal',
+        suppressRowClickSelection=True,
+        suppressHorizontalScroll=True
+    )
+    gb.configure_default_column(sortable=True, filter=True)
+
+    for col in df_mostrar.columns:
+        header = col.capitalize()
+        if col == "TIPO DE APORTE":
+            gb.configure_column(col, header_name=header, filter="agSetColumnFilter")
+        elif col == "NOMBRE APORTANTE":
+            gb.configure_column(col, header_name=header, filter="agTextColumnFilter")
+        elif col == "Monto":
+            gb.configure_column(
+                col,
+                header_name="Monto",
+                type=["numericColumn", "rightAligned"],
+                valueFormatter='data.Monto.toLocaleString("es-CL", {style: "currency", currency: "CLP"})',
+                cellStyle={"fontWeight": "bold"}
+            )
+        else:
+            gb.configure_column(col, header_name=header)
+
+    grid_options = gb.build()
+
+    # Calcular altura de la tabla
+    row_height = 32
+    n_filas = len(df_mostrar)
+    altura_total = 40 + min(n_filas, 10) * row_height + (38 if n_filas > 10 else 0)
+
+    # Mostrar tabla
+    AgGrid(
+    df_mostrar,
+    gridOptions=grid_options,
+    update_mode=GridUpdateMode.NO_UPDATE,
+    data_return_mode=DataReturnMode.FILTERED_AND_SORTED,
+    fit_columns_on_grid_load=True,
+    theme="balham-dark",
+    height=100 if len(df_mostrar) == 1 else (altura_total),
+    allow_unsafe_jscode=True,
+    enable_enterprise_modules=False,
+    custom_css={
+        ".ag-root": {"background-color": "#1e1e1e !important"},
+        ".ag-header": {"background-color": "#111111"},
+        ".ag-header-cell-label": {"color": "white"},
+        ".ag-cell-value": {"color": "white !important"},
+        ".ag-row": {"background-color": "#1e1e1e !important"},
+        ".ag-cell": {"background-color": "#1e1e1e !important"},
+    }
+)
+
+    # Botón de descarga
+    st.download_button(
+        "📥 Descargar aportes",
+        data=df_mostrar.to_csv(index=False).encode("utf-8-sig"),
+        file_name="aportes_candidatos.csv",
+        mime="text/csv"
+    )
+
 
 # -------------------- Gráfico de aportes por candidato --------------------
-def mostrar_grafico_aportes_por_tipo(df_candidato):
+
+def mostrar_grafico_aportes_por_tipo(df_candidato, candidato):
     col_monto_real = [col for col in df_candidato.columns if "MONTO" in col.upper()]
     col_monto_real = col_monto_real[0] if col_monto_real else None
 
@@ -237,35 +387,56 @@ def mostrar_grafico_aportes_por_tipo(df_candidato):
         total = resumen.sum()
 
         etiquetas = [
-            f"{tipo}\n{formato_clp(monto)} ({monto/total:.1%})"
+            f"{tipo.title()}\n{formato_clp(monto)} ({monto/total:.1%})"
             for tipo, monto in resumen.items()
         ]
 
-        fig, ax = plt.subplots(figsize=(5, 5))
-        wedges, texts = ax.pie(
+        # 🔽 Más pequeño
+        fig, ax = plt.subplots(figsize=(5, 4))  
+        wedges, _ = ax.pie(
             resumen,
             labels=etiquetas,
             startangle=90,
             wedgeprops=dict(width=0.4)
         )
-        ax.set_title("Tipos de aportes recibidos")
+        ax.set_title(f"Tipos de aportes recibidos por {candidato['nombre']}")
         ax.axis('equal')
 
+        # 🔽 Centrado
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             st.pyplot(fig)
     else:
         st.info("No hay datos suficientes para generar el gráfico.")
 
+
+def resumen_aportes_candidato(df_candidato):
+    col_monto = [col for col in df_candidato.columns if "MONTO" in col.upper()]
+    col_monto = col_monto[0] if col_monto else None
+    if not col_monto:
+        return "Sin datos"
+
+    total = pd.to_numeric(df_candidato[col_monto], errors='coerce').sum()
+    cantidad = len(df_candidato)
+
+    resumen = f"**Total aportes recibidos:** {formato_clp(total)}  \n"
+    resumen += f"**Número de aportes:** {cantidad}"
+    return resumen
+
+
 def mostrar_aportes_detallados(df, candidato):
     st.markdown(f"### Detalle de aportes recibidos por **{candidato['nombre']}**")
-
     df_candidato = filtrar_aportes_candidato(df, candidato)
 
     if df_candidato.empty:
         st.warning("No se encontraron aportes registrados para este candidato.")
         return
 
-    mostrar_tabla_detallada_aportes(df_candidato)
+    # Mostrar resumen antes de tabla y gráfico
+    st.markdown(resumen_aportes_candidato(df_candidato))
+
+    mostrar_tabla_detallada_aportes(df_candidato,candidato)
+
     st.subheader("Distribución de tipos de aporte")
-    mostrar_grafico_aportes_por_tipo(df_candidato)
+    mostrar_grafico_aportes_por_tipo(df_candidato, candidato)
+

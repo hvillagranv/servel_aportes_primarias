@@ -18,7 +18,7 @@ candidatos = [
         "imagen": "https://upload.wikimedia.org/wikipedia/commons/f/fe/Jeannette_Jara%2C_2022.png",
         "ajuste": "center",
         "icono_partido": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Partido_Comunista_de_Chile.svg/1024px-Partido_Comunista_de_Chile.svg.png",  # PC
-        "partido": "Partido Comunista",
+        "partido": "Partido Comunista de Chile",
         "color_partido": "#DA121A", 
         "edad": "51 años",
         "profesion": "Abogada y Administradora Pública",
