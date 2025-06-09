@@ -2,7 +2,7 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from utilidades import formato_clp
+from utilidades.utilidades import formato_clp
 from tablas import mostrar_tabla_detallada_aportes
 from procesamiento import filtrar_aportes_candidato
 
@@ -90,7 +90,7 @@ def mostrar_grafico_aportes_por_tipo(df_candidato, candidato):
             f"{tipo.title()}\n{formato_clp(monto)} ({monto/total:.1%})"
             for tipo, monto in resumen.items()
         ]
-        fig, ax = plt.subplots(figsize=(5, 4), facecolor="#0E1117")
+        fig, ax = plt.subplots(figsize=(5, 4), dpi=100, facecolor="#0E1117")
         wedges, _ = ax.pie(
             resumen, labels=None, startangle=90,
             wedgeprops=dict(width=0.4, edgecolor="#0E1117"),
@@ -113,11 +113,13 @@ def mostrar_grafico_aportes_por_tipo(df_candidato, candidato):
         ax.add_artist(plt.Circle((0, 0), 0.6, color="#0E1117"))
         ax.set_title(
             f"Tipos de aportes recibidos por {candidato['nombre']}",
-            fontsize=12, color='white', pad=30
+            fontsize=12, color='white', pad=15
         )
         ax.axis('equal')
         fig.patch.set_facecolor("#0E1117")
-        st.pyplot(fig)
+        col1, col2, col3 = st.columns([0.5, 2, 0.5])
+        with col2:
+            st.pyplot(fig, clear_figure=True)
     else:
         st.info("No hay datos suficientes para generar el gráfico.")
 

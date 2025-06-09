@@ -3,8 +3,8 @@ import pandas as pd
 from babel.dates import format_date
 from candidatos import candidatos
 from layout import mostrar_candidatos
-from procesamiento import cargar_datos_remotos, procesar_datos
-from tablas import mostrar_tabla_aportes
+from procesamiento import cargar_datos_remotos, procesar_datos, filtrar_aportes_candidato
+from tablas import mostrar_tabla_aportes, mostrar_top_aportantes
 from graficos import mostrar_graficos_aportes, mostrar_aportes_detallados
 
 st.set_page_config(layout="wide")
@@ -14,7 +14,7 @@ def aplicar_estilo_personalizado(css_file):
     with open(css_file) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-aplicar_estilo_personalizado("estilos.css")
+aplicar_estilo_personalizado("utilidades/estilos.css")
 
 st.title("Visualización de Aportes a Candidatos – Primarias 2025")
 
@@ -47,7 +47,9 @@ try:
     if nombre_seleccionado:
         candidato_obj = next((c for c in candidatos if c["nombre"] == nombre_seleccionado), None)
         if candidato_obj:
-            mostrar_aportes_detallados(df, candidato_obj)
+            df_candidato = filtrar_aportes_candidato(df, candidato_obj)
+            mostrar_aportes_detallados(df_candidato, candidato_obj)
+            mostrar_top_aportantes(df_candidato, candidato_obj)
 
 except Exception as e:
     st.error(f"Error al cargar o procesar los datos: {e}")

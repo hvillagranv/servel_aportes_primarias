@@ -1,7 +1,7 @@
 import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode
 import pandas as pd
-from utilidades import normalizar, capitalizar_nombre, formato_clp
+from utilidades.utilidades import normalizar, capitalizar_nombre, formato_clp
 
 # -------------------- Tabla general de resumen --------------------
 
@@ -223,3 +223,95 @@ def mostrar_tabla_detallada_aportes(df_candidato, candidato):
         mime="text/csv",
         use_container_width=True
     )
+
+def mostrar_top_aportantes(df_candidato, candidato):
+    st.subheader("Top 10 aportantes por monto total")
+
+    col_aportante = next((col for col in df_candidato.columns if "APORTANTE" in col.upper()), None)
+    col_monto = next((col for col in df_candidato.columns if "MONTO" in col.upper()), None)
+    col_tipo_aporte = next((col for col in df_candidato.columns if "TIPO DE APORTE" in col.upper()), None)
+
+    if not col_aportante or not col_monto or not col_tipo_aporte:
+        st.warning("No se pudo identificar columnas válidas.")
+        return
+
+    df_candidato[col_monto] = pd.to_numeric(df_candidato[col_monto], errors='coerce')
+    df_candidato[col_aportante] = df_candidato[col_aportante].fillna("").astype(str).str.strip()
+    df_candidato[col_tipo_aporte] = df_candidato[col_tipo_aporte].fillna("").astype(str).str.strip()
+
+    # Agrupar anónimos que son "Aporte menor sin publicidad"
+    df_candidato["__APORTANTE_NOMBRE__"] = df_candidato.apply(
+        lambda row: "Aportante sin Publicidad"
+        if row[col_tipo_aporte].upper() == "APORTE MENOR SIN PUBLICIDAD" and row[col_aportante] in ["", "-", "–", "—"]
+        else capitalizar_nombre(row[col_aportante]),
+        axis=1
+    )
+
+    # Filtrar solo los que son 'Aporte con Publicidad' y tienen nombre válido (no son anónimos)
+    df_con_publicidad = df_candidato[
+        (df_candidato[col_tipo_aporte].str.upper() == "APORTE CON PUBLICIDAD") &
+        (~df_candidato["__APORTANTE_NOMBRE__"].isin(["Aportante sin Publicidad"]))
+    ]
+
+    # Combinar con los anónimos sin publicidad
+    df_sin_publicidad = df_candidato[
+        df_candidato["__APORTANTE_NOMBRE__"] == "Aportantes sin Publicidad"
+    ]
+
+    df_top = pd.concat([df_con_publicidad, df_sin_publicidad], ignore_index=True)
+
+    # Agrupar y sumar
+    top = (
+        df_top
+        .groupby("__APORTANTE_NOMBRE__")[col_monto]
+        .sum()
+        .sort_values(ascending=False)
+        .head(10)
+        .reset_index()
+        .rename(columns={"__APORTANTE_NOMBRE__": "Aportante", col_monto: "Monto"})
+    )
+    top["Monto"] = top["Monto"].apply(formato_clp)
+
+    # Estilo uniforme
+    gb = GridOptionsBuilder.from_dataframe(top)
+    gb.configure_column("Monto", type=["numericColumn", "rightAligned"])
+    gb.configure_default_column(sortable=True, filter=True, resizable=True, flex=1)
+    gb.configure_grid_options(domLayout='autoHeight')
+    custom_css = {
+        ".ag-root": {"background-color": "#1e1e1e !important"},
+        ".ag-header": {"background-color": "#111111"},
+        ".ag-header-cell-label": {"color": "white"},
+        ".ag-cell-value": {"color": "white !important"},
+        ".ag-row": {"background-color": "#1e1e1e !important"},
+        ".ag-cell": {"background-color": "#1e1e1e !important"},
+        ".ag-header-icon": {"filter": "invert(1)"},
+        ".ag-root-wrapper": {"width": "100% !important"},
+        ".ag-center-cols-viewport": {"overflow-x": "auto"}
+    }
+
+    altura = 40 + len(top) * 32  # Altura base + 32 px por fila
+
+    AgGrid(
+        top,
+        gridOptions=gb.build(),
+        fit_columns_on_grid_load=True,
+        height=altura,
+        enable_enterprise_modules=False,
+        theme="balham-dark",
+        custom_css=custom_css,
+        key=f"top_aportantes_{candidato['nombre']}"
+    )
+
+    # Totales sin publicidad y propios
+    sin_pub = df_candidato[df_candidato[col_tipo_aporte].str.upper() == "APORTE MENOR SIN PUBLICIDAD"]
+    total_sin_pub = sin_pub[col_monto].sum()
+
+    partido_norm = normalizar(candidato["partido"])
+    df_propios = df_candidato[
+        (df_candidato[col_tipo_aporte].str.upper() == "PROPIO") &
+        (df_candidato[col_aportante].astype(str).apply(normalizar) == partido_norm)
+    ]
+    total_propios = df_propios[col_monto].sum()
+
+    st.markdown(f"**🕶 Total aportes sin publicidad:** {formato_clp(total_sin_pub)}")
+    st.markdown(f"**🏛 Aportes propios del partido:** {formato_clp(total_propios)}")

@@ -1,7 +1,7 @@
 import pandas as pd
 import requests
 from io import BytesIO
-from utilidades import normalizar, capitalizar_nombre
+from utilidades.utilidades import normalizar, capitalizar_nombre
 
 def cargar_datos_remotos(url):
     response = requests.get(url)

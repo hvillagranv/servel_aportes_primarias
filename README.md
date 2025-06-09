@@ -9,10 +9,12 @@ Este proyecto permite explorar de manera interactiva los aportes económicos rec
 
 ## 📊 Funcionalidades principales
 
-- **Visualización general**: muestra el total de aportes por candidato.
-- **Detalle por candidato**: entrega tabla de aportes individuales con filtros.
-- **Gráficos**: distribución de tipos de aporte por candidato.
-- **Descarga** de datos filtrados como CSV.
+- Tabla general de aportes por candidato.
+- Gráficos de distribución por tipo de aporte.
+- Vista detallada por candidato:
+  - Tabla individual de aportes.
+  - Top 10 aportantes.
+
 
 ## 🧰 Tecnologías utilizadas
 
@@ -54,11 +56,13 @@ streamlit run app.py
 
 ```
 ├── aportes.py                   # Archivo principal de Streamlit
-├── graficos.py                  # Funciones de visualización y tablas
 ├── layout.py                    # Visualización de información de candidatos
 ├── candidatos.py                # Lista y metadatos de candidatos
+├── procesamiento.py             # Funciones de transformación de datos de origen
+├── tablas.py                    # Funciones de visualización de tablas
+├── graficos.py                  # Funciones de visualización de gráficos
 ├── requirements.txt             # Paquetes necesarios
-├── estilos.css                  # Hoja de estilos del sitio
+├── utilidades                   # Carpeta con css, js y funciones auxiliares
 ├── README.md                    # Este archivo
 ```
 

@@ -2,11 +2,11 @@ import streamlit.components.v1 as components
 
 def mostrar_candidatos(candidatos):
     # Cargar CSS externo
-    with open("candidatos.css", encoding="utf-8") as f:
+    with open("utilidades/candidatos.css", encoding="utf-8") as f:
         estilos = f"<style>{f.read()}</style>"
 
     # Cargar JS externo
-    with open("candidatos.js", encoding="utf-8") as f:
+    with open("utilidades/candidatos.js", encoding="utf-8") as f:
         script = f"<script>{f.read()}</script>"
 
     # Crear todos los bloques HTML de los candidatos
