@@ -34,6 +34,10 @@ def mostrar_graficos_aportes(df, col_monto, titulog1, titulog2, candidatos):
             )
         ax.set_title(titulog1, color='white', fontsize=12)
         ax.set_ylabel("Monto en pesos", color='white')
+        #eje y que se vea en formato pesos ($100.000.000)
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: formato_clp(x)))
+        #ajustar el límite al mayor monto + 10%
+        ax.set_ylim(0, montos.max() * 1.1)
         ax.set_xlabel("Candidato", color='white')
         ax.tick_params(colors='white')
         ax.spines["top"].set_visible(False)
