@@ -7,7 +7,7 @@ def cargar_datos_remotos(url):
     response = requests.get(url)
     response.raise_for_status()
     contenido = BytesIO(response.content)
-    df_raw = pd.read_excel(contenido, header=None)
+    df_raw = pd.read_excel(contenido, header=None,sheet_name="REPORTE_PRIMARIAS")
     for idx, row in df_raw.iterrows():
         if row.astype(str).str.contains("TIPO DE APORTE", case=False).any():
             inicio = idx

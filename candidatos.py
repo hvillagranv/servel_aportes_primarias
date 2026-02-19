@@ -1,7 +1,7 @@
 candidatos = [
     {
         "nombre": "Gonzalo Winter",
-        "imagen": "https://pbs.twimg.com/profile_images/1931455063161004032/_M0qE_b5_400x400.jpg",
+        "imagen": "https://votainteligente.cl/cache/cache/f4/1b/f41b440d824665106d48e1e44d45d8ea.png",
         "ajuste": "center",
         "icono_partido": "https://frenteampliochile.cl/wp-content/uploads/2024/06/favico.png", 
         "partido": "Frente Amplio",

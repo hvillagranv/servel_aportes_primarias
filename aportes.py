@@ -23,6 +23,7 @@ url = "https://repodocgastoelectoral.blob.core.windows.net/public/Presidencial_P
 
 try:
     df = cargar_datos_remotos(url)
+    
 
     col_fecha = next((col for col in df.columns if "FECHA DE TRANSFERENCIA" in col.upper()), None)
     if col_fecha:
