@@ -21,14 +21,18 @@ def cargar_datos_remotos(url, cache_dir="data"):
     else:
         file_path.write_bytes(response.content)
 
+    nombre_hoja = "REPORTE_PRIMARIAS"
     contenido = BytesIO(file_path.read_bytes())
-    df_raw = pd.read_excel(contenido, header=None, sheet_name="REPORTE_PRIMARIAS")
+    df_raw = pd.read_excel(contenido, header=None, sheet_name=nombre_hoja)
+    inicio = None
     for idx, row in df_raw.iterrows():
         if row.astype(str).str.contains("TIPO DE APORTE", case=False).any():
             inicio = idx
             break
+    if inicio is None:
+        raise ValueError(f"No se encontró la fila de encabezados en la hoja {nombre_hoja}")
     contenido.seek(0)
-    return pd.read_excel(contenido, header=inicio)
+    return pd.read_excel(contenido, header=inicio, sheet_name=nombre_hoja)
 
 def procesar_datos(df, candidatos):
     col_candidato_df = [col for col in df.columns if "CANDIDATO" in col.upper()][0]
