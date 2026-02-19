@@ -1,17 +1,33 @@
 import pandas as pd
 import requests
 from io import BytesIO
+from pathlib import Path
 from utilidades.utilidades import normalizar, capitalizar_nombre
 
-def cargar_datos_remotos(url):
+def cargar_datos_remotos(url, cache_dir="data"):
     response = requests.get(url)
     response.raise_for_status()
-    contenido = BytesIO(response.content)
-    df_raw = pd.read_excel(contenido, header=None,sheet_name="REPORTE_PRIMARIAS")
+
+    cache_path = Path(cache_dir)
+    cache_path.mkdir(parents=True, exist_ok=True)
+    filename = url.split("/")[-1]
+    file_path = cache_path / filename
+
+    remote_size = len(response.content)
+    if file_path.exists():
+        local_size = file_path.stat().st_size
+        if local_size != remote_size:
+            file_path.write_bytes(response.content)
+    else:
+        file_path.write_bytes(response.content)
+
+    contenido = BytesIO(file_path.read_bytes())
+    df_raw = pd.read_excel(contenido, header=None, sheet_name="REPORTE_PRIMARIAS")
     for idx, row in df_raw.iterrows():
         if row.astype(str).str.contains("TIPO DE APORTE", case=False).any():
             inicio = idx
             break
+    contenido.seek(0)
     return pd.read_excel(contenido, header=inicio)
 
 def procesar_datos(df, candidatos):
